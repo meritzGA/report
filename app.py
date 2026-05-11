@@ -46,50 +46,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-st.markdown("""
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
-<style>
-  .block-container { padding-top:0.6rem; padding-bottom:1rem;
-                     padding-left:0.8rem; padding-right:0.8rem; }
-  [data-testid="collapsedControl"] { display:none; }
+_CSS = """<style>
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded');
+.block-container { padding-top:0.6rem; padding-bottom:1rem; padding-left:0.8rem; padding-right:0.8rem; }
+[data-testid="collapsedControl"] { display:none; }
+[data-testid="stIconMaterial"], .material-symbols-rounded, .material-symbols-outlined, .material-icons {
+  font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Icons',sans-serif !important;
+  font-feature-settings:'liga' !important;
+}
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
+  font-size:0 !important; color:transparent !important;
+  position:relative; width:1rem; height:1rem; overflow:hidden;
+}
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"]::after {
+  content:''; position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); width:0; height:0;
+  border-left:5px solid transparent; border-right:5px solid transparent;
+  border-top:6px solid currentColor; transition:transform 0.15s;
+}
+[data-testid="stExpander"] details[open] summary [data-testid="stIconMaterial"]::after {
+  transform:translate(-50%,-50%) rotate(180deg);
+}
+div[data-testid="stDataFrame"] table th:first-child,
+div[data-testid="stDataFrame"] table td:first-child {
+  position:sticky; left:0; background:var(--background-color,white);
+  z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.05);
+}
+details summary { padding-right:32px; }
+h1 { font-size:1.6rem; margin-bottom:0.2rem; }
+h2 { font-size:1.2rem; }
+h3 { font-size:1.05rem; }
+</style>"""
 
-  [data-testid="stIconMaterial"],
-  .material-symbols-rounded, .material-symbols-outlined, .material-icons {
-    font-family:'Material Symbols Rounded','Material Symbols Outlined',
-                'Material Icons',sans-serif !important;
-    font-feature-settings:'liga' !important;
-  }
-
-  /* expander 화살표: 폰트와 무관하게 CSS triangle */
-  [data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
-    font-size:0 !important; color:transparent !important;
-    position:relative; width:1rem; height:1rem; overflow:hidden;
-  }
-  [data-testid="stExpander"] summary [data-testid="stIconMaterial"]::after {
-    content:''; position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%);
-    width:0; height:0;
-    border-left:5px solid transparent;
-    border-right:5px solid transparent;
-    border-top:6px solid currentColor;
-    transition:transform 0.15s;
-  }
-  [data-testid="stExpander"] details[open] summary [data-testid="stIconMaterial"]::after {
-    transform:translate(-50%,-50%) rotate(180deg);
-  }
-
-  div[data-testid="stDataFrame"] table th:first-child,
-  div[data-testid="stDataFrame"] table td:first-child {
-    position:sticky; left:0; background:var(--background-color,white);
-    z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.05);
-  }
-  details summary { padding-right:32px; }
-  h1 { font-size:1.6rem; margin-bottom:0.2rem; }
-  h2 { font-size:1.2rem; }
-  h3 { font-size:1.05rem; }
-</style>
-""", unsafe_allow_html=True)
+try:
+    st.html(_CSS)
+except Exception:
+    st.markdown(_CSS, unsafe_allow_html=True)
 
 
 def _check_password():
