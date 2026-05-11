@@ -27,7 +27,7 @@ from preprocess import convert_path  # noqa: E402
 PROJECT_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_DIR / "data"
 
-TOP_N_SUB_AGENCY = 200
+TOP_N_SUB_AGENCY = 300
 EFF_BD = "유효영업일"
 
 
@@ -51,10 +51,12 @@ _CSS = """<style>
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded');
 
-/* Streamlit Cloud 상단 헤더(deploy bar)가 콘텐츠를 가리지 않게 충분한 여백 확보 */
-.block-container { padding-top: 4rem !important; }
+/* Streamlit Cloud 상단 헤더 영역 확보 (데스크탑/모바일 공통 5rem) */
+.block-container { padding-top: 5rem !important; }
 /* 상단 헤더 자체를 불투명하게 → 스크롤 시 콘텐츠와 겹쳐도 흐려 보이지 않음 */
-[data-testid="stHeader"] { background: white !important; }
+[data-testid="stHeader"] { background: white !important; height: 3rem !important; }
+/* 헤더 안의 데코레이션 영역도 명시적으로 크기 확보 */
+[data-testid="stDecoration"] { display: none !important; }
 
 [data-testid="collapsedControl"] { display:none; }
 
@@ -86,11 +88,11 @@ details summary { padding-right:32px; }
 
 @media (max-width: 768px) {
   .block-container {
-    padding-top: 2rem !important;
+    padding-top: 5rem !important;
     padding-left: 0.7rem !important;
     padding-right: 0.7rem !important;
   }
-  h1 { font-size:1.4rem !important; }
+  h1 { font-size:1.4rem !important; margin-top: 0.5rem !important; }
   h2 { font-size:1.1rem !important; }
 }
 </style>"""
