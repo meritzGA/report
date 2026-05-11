@@ -3,7 +3,7 @@
 - 비밀번호 게이트
 - 필터 상단, 사이드바 미사용
 - 첫 컬럼(대리점명) 틀고정
-- 모바일 호환을 위해 이모지/특수문자 미사용
+- expander 화살표는 폰트 의존성 없이 CSS triangle로 그림
 """
 from __future__ import annotations
 
@@ -46,31 +46,52 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 모바일 친화 + 첫 컬럼 sticky CSS
 st.markdown("""
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
 <style>
-  /* 모바일 패딩 최소화 */
-  .block-container { padding-top: 0.6rem; padding-bottom: 1rem;
-                     padding-left: 0.8rem; padding-right: 0.8rem; }
-  /* 사이드바 토글(상단 좌측 햄버거)이 보이지 않도록 */
-  [data-testid="collapsedControl"] { display: none; }
-  /* 표: 첫 컬럼(인덱스) sticky */
+  .block-container { padding-top:0.6rem; padding-bottom:1rem;
+                     padding-left:0.8rem; padding-right:0.8rem; }
+  [data-testid="collapsedControl"] { display:none; }
+
+  [data-testid="stIconMaterial"],
+  .material-symbols-rounded, .material-symbols-outlined, .material-icons {
+    font-family:'Material Symbols Rounded','Material Symbols Outlined',
+                'Material Icons',sans-serif !important;
+    font-feature-settings:'liga' !important;
+  }
+
+  /* expander 화살표: 폰트와 무관하게 CSS triangle */
+  [data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
+    font-size:0 !important; color:transparent !important;
+    position:relative; width:1rem; height:1rem; overflow:hidden;
+  }
+  [data-testid="stExpander"] summary [data-testid="stIconMaterial"]::after {
+    content:''; position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:0; height:0;
+    border-left:5px solid transparent;
+    border-right:5px solid transparent;
+    border-top:6px solid currentColor;
+    transition:transform 0.15s;
+  }
+  [data-testid="stExpander"] details[open] summary [data-testid="stIconMaterial"]::after {
+    transform:translate(-50%,-50%) rotate(180deg);
+  }
+
   div[data-testid="stDataFrame"] table th:first-child,
   div[data-testid="stDataFrame"] table td:first-child {
-    position: sticky; left: 0; background: var(--background-color, white);
-    z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+    position:sticky; left:0; background:var(--background-color,white);
+    z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.05);
   }
-  /* expander 라벨이 화살표와 겹치지 않도록 여유 */
-  details summary { padding-right: 28px; }
-  /* 타이틀 크기 모바일 조정 */
-  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
-  h2 { font-size: 1.2rem; }
-  h3 { font-size: 1.05rem; }
+  details summary { padding-right:32px; }
+  h1 { font-size:1.6rem; margin-bottom:0.2rem; }
+  h2 { font-size:1.2rem; }
+  h3 { font-size:1.05rem; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ===================== 비밀번호 게이트 =====================
 def _check_password():
     if st.session_state.get("auth_ok"):
         return
@@ -89,7 +110,6 @@ def _check_password():
     st.stop()
 
 
-# ===================== 데이터 =====================
 @st.cache_data(show_spinner="데이터 로딩 중...")
 def _load(_key):
     return load_month("202604"), load_month("202605")
@@ -105,7 +125,6 @@ def _ensure_eff(df, year, month):
     return df
 
 
-# ===================== 표 =====================
 def _fmt_table(df, key_col):
     show = df.copy()
     int_cols = [c for c in show.columns
@@ -164,7 +183,6 @@ def _kpi(apr_p, may_p, label="전체"):
     c5.metric("가동인원 G/R", f"{agr:+.1f}%")
 
 
-# ===================== 데이터 갱신 =====================
 def _render_update_panel():
     may_pq = DATA_DIR / "prizebase_202605.parquet"
     if may_pq.exists():
@@ -190,11 +208,9 @@ def _render_update_panel():
             tmp.unlink(missing_ok=True)
 
 
-# ===================== UI =====================
 def main():
     _check_password()
 
-    # 상단 헤더
     top_l, top_r = st.columns([3, 1])
     with top_l:
         st.title("대리점 진도 대시보드")
@@ -208,11 +224,9 @@ def main():
     df_apr = _ensure_eff(df_apr, 2026, 4)
     df_may = _ensure_eff(df_may, 2026, 5)
 
-    # 데이터 갱신 (접힘)
     with st.expander("데이터 갱신", expanded=False):
         _render_update_panel()
 
-    # 필터 (펼침)
     with st.expander("필터", expanded=True):
         may_cal = business_days_range(2026, 5)
         default_ref = may_cal[-1].date()
@@ -229,7 +243,7 @@ def main():
                 min_value=dt.date(2026, 5, 1),
                 max_value=dt.date(2026, 5, 31),
                 format="YYYY-MM-DD",
-                help="기준일 24일 이하: 동영업일수, 25일 이상: 잔여영업일 모드",
+                help="기준일 24일 이하: 동영업일수, 25일 이상: 잔여영업일",
             )
             hq_opts = sorted(df_apr[HQ_COL].dropna().unique().tolist())
             hq_sel = st.multiselect("본부", hq_opts, placeholder="전체")
