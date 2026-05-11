@@ -1,0 +1,23 @@
+# 원본 raw 엑셀(대용량 + 민감)은 깃에 올리지 않는다.
+# 실제 운영 시에도 raw xlsx는 절대 푸시하지 말 것.
+*.xlsx
+*.xls
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Streamlit
+.streamlit/secrets.toml
