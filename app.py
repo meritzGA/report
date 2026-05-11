@@ -4,6 +4,7 @@
 - 필터 상단, 사이드바 미사용
 - 첫 컬럼(대리점명) 틀고정
 - expander 화살표는 폰트 의존성 없이 CSS triangle로 그림
+- 데스크탑은 Streamlit 기본 레이아웃 유지, 모바일만 추가 조정
 """
 from __future__ import annotations
 
@@ -49,12 +50,19 @@ st.set_page_config(
 _CSS = """<style>
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded');
-.block-container { padding-top:0.6rem; padding-bottom:1rem; padding-left:0.8rem; padding-right:0.8rem; }
+
+/* Streamlit Cloud 상단 헤더(deploy bar)가 콘텐츠를 가리지 않게 충분한 여백 확보 */
+.block-container { padding-top: 4rem !important; }
+/* 상단 헤더 자체를 불투명하게 → 스크롤 시 콘텐츠와 겹쳐도 흐려 보이지 않음 */
+[data-testid="stHeader"] { background: white !important; }
+
 [data-testid="collapsedControl"] { display:none; }
+
 [data-testid="stIconMaterial"], .material-symbols-rounded, .material-symbols-outlined, .material-icons {
   font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Icons',sans-serif !important;
   font-feature-settings:'liga' !important;
 }
+
 [data-testid="stExpander"] summary [data-testid="stIconMaterial"] {
   font-size:0 !important; color:transparent !important;
   position:relative; width:1rem; height:1rem; overflow:hidden;
@@ -68,15 +76,23 @@ _CSS = """<style>
 [data-testid="stExpander"] details[open] summary [data-testid="stIconMaterial"]::after {
   transform:translate(-50%,-50%) rotate(180deg);
 }
+
 div[data-testid="stDataFrame"] table th:first-child,
 div[data-testid="stDataFrame"] table td:first-child {
   position:sticky; left:0; background:var(--background-color,white);
   z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.05);
 }
 details summary { padding-right:32px; }
-h1 { font-size:1.6rem; margin-bottom:0.2rem; }
-h2 { font-size:1.2rem; }
-h3 { font-size:1.05rem; }
+
+@media (max-width: 768px) {
+  .block-container {
+    padding-top: 2rem !important;
+    padding-left: 0.7rem !important;
+    padding-right: 0.7rem !important;
+  }
+  h1 { font-size:1.4rem !important; }
+  h2 { font-size:1.1rem !important; }
+}
 </style>"""
 
 try:
