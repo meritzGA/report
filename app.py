@@ -1,9 +1,9 @@
 """
 대리점 진도 대시보드 (Streamlit Cloud · 모바일 최적화)
 - 비밀번호 게이트
-- 필터를 상단으로, 사이드바 제거
-- 첫 컬럼(대리점명) 틀고정 → 가로 스크롤해도 보임
-- 데이터 갱신은 앱 내 xlsx 업로드만
+- 필터 상단, 사이드바 미사용
+- 첫 컬럼(대리점명) 틀고정
+- 모바일 호환을 위해 이모지/특수문자 미사용
 """
 from __future__ import annotations
 
@@ -42,7 +42,6 @@ PASSWORD = _get_password()
 
 st.set_page_config(
     page_title="대리점 진도 대시보드",
-    page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -50,14 +49,23 @@ st.set_page_config(
 # 모바일 친화 + 첫 컬럼 sticky CSS
 st.markdown("""
 <style>
-  /* 모바일에서 패딩 축소 */
-  .block-container { padding-top: 1rem; padding-bottom: 1rem; }
-  /* 스타일러 표: 첫 컬럼 sticky */
-  [data-testid="stTable"] table th:first-child,
-  [data-testid="stTable"] table td:first-child {
+  /* 모바일 패딩 최소화 */
+  .block-container { padding-top: 0.6rem; padding-bottom: 1rem;
+                     padding-left: 0.8rem; padding-right: 0.8rem; }
+  /* 사이드바 토글(상단 좌측 햄버거)이 보이지 않도록 */
+  [data-testid="collapsedControl"] { display: none; }
+  /* 표: 첫 컬럼(인덱스) sticky */
+  div[data-testid="stDataFrame"] table th:first-child,
+  div[data-testid="stDataFrame"] table td:first-child {
     position: sticky; left: 0; background: var(--background-color, white);
     z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.05);
   }
+  /* expander 라벨이 화살표와 겹치지 않도록 여유 */
+  details summary { padding-right: 28px; }
+  /* 타이틀 크기 모바일 조정 */
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; }
+  h3 { font-size: 1.05rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -66,7 +74,7 @@ st.markdown("""
 def _check_password():
     if st.session_state.get("auth_ok"):
         return
-    st.title("🔒 대리점 진도 대시보드")
+    st.title("대리점 진도 대시보드")
     st.caption("비밀번호를 입력하세요.")
     with st.form("login_form"):
         pw = st.text_input("비밀번호", type="password",
@@ -82,7 +90,7 @@ def _check_password():
 
 
 # ===================== 데이터 =====================
-@st.cache_data(show_spinner="데이터 로딩 중…")
+@st.cache_data(show_spinner="데이터 로딩 중...")
 def _load(_key):
     return load_month("202604"), load_month("202605")
 
@@ -113,7 +121,6 @@ def _fmt_table(df, key_col):
 
 
 def _build_styler(df, key_col):
-    """첫 컬럼을 index로 설정 → set_sticky로 sticky"""
     show = _fmt_table(df, key_col).set_index(key_col)
     fmt = {c: "{:,.0f}" for c in show.columns
            if c.startswith(("매출_", "건수_", "가동인원_")) and not c.endswith("GR%")}
@@ -126,16 +133,13 @@ def _build_styler(df, key_col):
             lambda v: "color: #c0392b" if isinstance(v, (int, float)) and v < 0
             else ("color: #27ae60" if isinstance(v, (int, float)) and v > 0 else ""),
             subset=[c])
-    # pandas Styler의 sticky (axis=0 = 인덱스 컬럼)
     sty = sty.set_sticky(axis=0)
     return sty
 
 
 def _show_table(df, key_col, height=540):
-    """Streamlit dataframe + 첫 컬럼 pin (column_config) + styler set_sticky 백업"""
     sty = _build_styler(df, key_col)
     try:
-        # Streamlit 1.36+ : pinned 컬럼 (첫 컬럼은 index)
         st.dataframe(
             sty, width="stretch", height=height,
             column_config={"_index": st.column_config.Column(pinned=True, width="medium")},
@@ -166,19 +170,19 @@ def _render_update_panel():
     if may_pq.exists():
         ts = pd.Timestamp(may_pq.stat().st_mtime, unit="s")
         st.caption(f"현재 5월 데이터: **{ts:%Y-%m-%d %H:%M}**")
-    st.markdown("새 5월 데이터(xlsx)를 끌어다 놓으면 즉시 반영됩니다.")
+    st.caption("새 5월 데이터(xlsx)를 끌어다 놓으면 즉시 반영됩니다.")
     up = st.file_uploader("prizebase_202605.xlsx", type=["xlsx"],
                           key="may_upload", label_visibility="collapsed")
-    if up is not None and st.button("📥 업로드 파일로 갱신",
+    if up is not None and st.button("업로드 파일로 갱신",
                                      width="stretch", type="primary"):
         tmp = DATA_DIR / "_upload_202605.xlsx"
         tmp.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_bytes(up.getbuffer())
         try:
-            with st.spinner("처리 중…"):
+            with st.spinner("처리 중..."):
                 _, rows = convert_path(tmp, may_pq)
             st.cache_data.clear()
-            st.success(f"✅ {rows:,}건 처리 완료")
+            st.success(f"{rows:,}건 처리 완료")
             tmp.unlink(missing_ok=True)
             st.rerun()
         except Exception as e:
@@ -190,12 +194,13 @@ def _render_update_panel():
 def main():
     _check_password()
 
-    # 상단: 제목 + 액션
+    # 상단 헤더
     top_l, top_r = st.columns([3, 1])
     with top_l:
-        st.title("📊 대리점 진도 대시보드")
+        st.title("대리점 진도 대시보드")
+        st.caption("4월 동영업일수 vs 5월 누계 · 인보험 기준")
     with top_r:
-        if st.button("🚪 로그아웃", width="stretch"):
+        if st.button("로그아웃", width="stretch"):
             st.session_state["auth_ok"] = False
             st.rerun()
 
@@ -203,12 +208,12 @@ def main():
     df_apr = _ensure_eff(df_apr, 2026, 4)
     df_may = _ensure_eff(df_may, 2026, 5)
 
-    # 데이터 갱신(접힘)
-    with st.expander("🔄 데이터 갱신", expanded=False):
+    # 데이터 갱신 (접힘)
+    with st.expander("데이터 갱신", expanded=False):
         _render_update_panel()
 
-    # 상단 필터 영역
-    with st.expander("🔍 필터", expanded=True):
+    # 필터 (펼침)
+    with st.expander("필터", expanded=True):
         may_cal = business_days_range(2026, 5)
         default_ref = may_cal[-1].date()
         if EFF_BD in df_may.columns:
@@ -219,21 +224,21 @@ def main():
         f1, f2 = st.columns(2)
         with f1:
             ref = st.date_input(
-                "📅 기준일 (5월)",
+                "기준일 (5월)",
                 value=default_ref,
                 min_value=dt.date(2026, 5, 1),
                 max_value=dt.date(2026, 5, 31),
                 format="YYYY-MM-DD",
-                help="≤24일: 동영업일수, ≥25일: 잔여영업일",
+                help="기준일 24일 이하: 동영업일수, 25일 이상: 잔여영업일 모드",
             )
             hq_opts = sorted(df_apr[HQ_COL].dropna().unique().tolist())
-            hq_sel = st.multiselect("🏛️ 본부", hq_opts, placeholder="전체")
+            hq_sel = st.multiselect("본부", hq_opts, placeholder="전체")
         with f2:
             bp = df_apr if not hq_sel else df_apr[df_apr[HQ_COL].isin(hq_sel)]
             br_opts = sorted(bp[BRANCH_COL].dropna().unique().tolist())
-            br_sel = st.multiselect("🏪 지점", br_opts, placeholder="전체")
+            br_sel = st.multiselect("지점", br_opts, placeholder="전체")
             ag_lvl = st.radio(
-                "🏢 대리점 단위",
+                "대리점 단위",
                 options=[AGENCY_PARENT_COL, AGENCY_SUB_COL],
                 format_func=lambda x: "영업가족명 (모기업)" if x == AGENCY_PARENT_COL
                                                       else f"대리점지사명 (Top {TOP_N_SUB_AGENCY})",
@@ -241,7 +246,7 @@ def main():
             )
 
     pp = make_period_pair(df_apr, df_may, ref_date=pd.Timestamp(ref))
-    st.info(f"📅 비교 기간: **{pp.label}**")
+    st.info(f"비교 기간: **{pp.label}**")
 
     apr_f = apply_filters(df_apr, hq=hq_sel, branch=br_sel, insurance_only=True)
     may_f = apply_filters(df_may, hq=hq_sel, branch=br_sel, insurance_only=True)
@@ -250,28 +255,28 @@ def main():
 
     parts = []
     if hq_sel: parts.append("/".join(hq_sel))
-    if br_sel: parts.append("/".join(br_sel[:3]) + ("…" if len(br_sel) > 3 else ""))
+    if br_sel: parts.append("/".join(br_sel[:3]) + ("..." if len(br_sel) > 3 else ""))
     if not parts: parts.append("전체")
-    _kpi(apr_p, may_p, label="·".join(parts))
+    _kpi(apr_p, may_p, label="/".join(parts))
     st.divider()
 
-    t1, t2, t3, t4 = st.tabs(["🏢 대리점별", "🏛️ 본부별", "🏪 지점별", "📈 일별 추이"])
+    t1, t2, t3, t4 = st.tabs(["대리점별", "본부별", "지점별", "일별 추이"])
 
     with t1:
         df_t = comparison_table(apr_f, may_f, pp, ag_lvl)
         total_n = len(df_t)
         if ag_lvl == AGENCY_SUB_COL and total_n > TOP_N_SUB_AGENCY:
             df_t = df_t.head(TOP_N_SUB_AGENCY)
-            st.caption(f"전체 {total_n:,}개 中 5월 매출 상위 {TOP_N_SUB_AGENCY}개")
+            st.caption(f"전체 {total_n:,}개 중 5월 매출 상위 {TOP_N_SUB_AGENCY}개")
         else:
             st.caption(f"총 {total_n:,} 개")
-        q = st.text_input("🔍 대리점명 검색", "", key="ag_q",
+        q = st.text_input("대리점명 검색", "", key="ag_q",
                           label_visibility="collapsed",
-                          placeholder="🔍 대리점명 검색 (부분일치)")
+                          placeholder="대리점명 검색 (부분일치)")
         if q:
             df_t = df_t[df_t[ag_lvl].astype(str).str.contains(q, na=False, case=False)]
         _show_table(df_t, ag_lvl)
-        st.download_button("💾 CSV", df_t.to_csv(index=False).encode("utf-8-sig"),
+        st.download_button("CSV 다운로드", df_t.to_csv(index=False).encode("utf-8-sig"),
                            file_name=f"agency_{ag_lvl}_{pp.ref_date.date()}.csv",
                            mime="text/csv")
 
@@ -295,7 +300,7 @@ def main():
         p = DATA_DIR / f"prizebase_{ym}.parquet"
         if p.exists():
             cap.append(f"{lbl}: {pd.Timestamp(p.stat().st_mtime, unit='s'):%Y-%m-%d %H:%M}")
-    st.caption("데이터 · " + " · ".join(cap))
+    st.caption("데이터 갱신 시각 · " + " · ".join(cap))
 
 
 if __name__ == "__main__":

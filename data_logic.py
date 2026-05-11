@@ -137,9 +137,9 @@ class PeriodPair:
         a0, aN = self.apr_days[0].date(), self.apr_days[-1].date()
         m0, mN = self.may_days[0].date(), self.may_days[-1].date()
         if self.mode == "backward":
-            return (f"📍 잔여영업일 모드 · 5월 {m0} - {mN} ({self.n_days}영업일) "
+            return (f"잔여영업일 모드 · 5월 {m0} - {mN} ({self.n_days}영업일) "
                     f"vs 4월 동기간 잔여 {a0} - {aN}")
-        return (f"📍 동영업일수 모드 · 5월 {m0} - {mN} (영업일 {self.n_days}일) "
+        return (f"동영업일수 모드 · 5월 {m0} - {mN} (영업일 {self.n_days}일) "
                 f"vs 4월 {a0} - {aN}")
 
 
