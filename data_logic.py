@@ -131,14 +131,16 @@ class PeriodPair:
     n_days: int
     ref_date: pd.Timestamp
     mode: str = "forward"   # "forward" | "backward"
+    remaining_days: int = 0   # backward 모드에서 4월 끝에서 제외한 영업일 수
 
     @property
     def label(self) -> str:
         a0, aN = self.apr_days[0].date(), self.apr_days[-1].date()
         m0, mN = self.may_days[0].date(), self.may_days[-1].date()
         if self.mode == "backward":
-            return (f"잔여영업일 모드 · 5월 {m0} - {mN} ({self.n_days}영업일) "
-                    f"vs 4월 동기간 잔여 {a0} - {aN}")
+            return (f"잔여영업일 기준 · 5월 {m0} - {mN} 누계 ({len(self.may_days)}영업일) "
+                    f"vs 4월 {a0} - {aN} 누계 ({len(self.apr_days)}영업일, "
+                    f"마지막 {self.remaining_days}영업일 제외)")
         return (f"동영업일수 모드 · 5월 {m0} - {mN} (영업일 {self.n_days}일) "
                 f"vs 4월 {a0} - {aN}")
 
@@ -147,11 +149,12 @@ def make_period_pair(df_apr: pd.DataFrame, df_may: pd.DataFrame,
                      ref_date: pd.Timestamp | None = None) -> PeriodPair:
     """
     매칭 모드:
-    - ref_date.day < BACKWARD_MODE_FROM_DAY(=25) → forward
+    - ref_date.day < BACKWARD_MODE_FROM_DAY(=25) → forward (동영업일수)
         5월 [첫 영업일 ~ ref_date까지 N영업일] vs 4월 [첫 N영업일]
-    - ref_date.day >= 25 → backward (잔여 영업일 기준)
-        5월 [ref_date ~ 5월말까지 K영업일] vs 4월 [4월말 마지막 K영업일]
-        (단 K가 0이면 마지막 1영업일로 fallback)
+    - ref_date.day >= 25 → backward (잔여영업일 기준)
+        5월 잔여영업일 수(K) = 전체 5월 영업일 - ref_date까지 5월 영업일
+        5월 [첫 영업일 ~ ref_date 누계] vs 4월 [첫 영업일 ~ 마지막에서 K번째까지 누계]
+        (월별 영업일수 차이를 보정하여 "남은 영업일이 같다면 어느 정도 따라잡았는가"를 비교)
     """
     apr_cal = business_days_range(2026, 4)
     may_cal = business_days_range(2026, 5)
@@ -169,15 +172,19 @@ def make_period_pair(df_apr: pd.DataFrame, df_may: pd.DataFrame,
         return PeriodPair(may_days=may_used, apr_days=apr_used,
                           n_days=n, ref_date=ref_date, mode="forward")
 
-    # backward: ref_date ~ 월말까지 K영업일
-    may_used = [d for d in may_cal if d >= ref_date]
+    # backward: 5월 누계(월초~ref_date) vs 4월 누계(월초~마지막에서 K영업일 제외)
+    may_used = [d for d in may_cal if d <= ref_date]
     if not may_used:
-        # ref_date가 마지막 영업일 이후라면 마지막 1영업일만
-        may_used = [may_cal[-1]]
-    k = len(may_used)
-    apr_used = apr_cal[-k:] if len(apr_cal) >= k else apr_cal
+        may_used = [may_cal[0]]
+    remaining = len(may_cal) - len(may_used)   # 5월 잔여 영업일 수
+    if remaining > 0 and len(apr_cal) > remaining:
+        apr_used = apr_cal[:-remaining]
+    else:
+        # 잔여 0이거나 4월이 더 짧으면 4월 전체
+        apr_used = apr_cal
     return PeriodPair(may_days=may_used, apr_days=apr_used,
-                      n_days=k, ref_date=ref_date, mode="backward")
+                      n_days=len(may_used), ref_date=ref_date,
+                      mode="backward", remaining_days=remaining)
 
 
 def apply_filters(df: pd.DataFrame, hq: list[str] | None = None,
